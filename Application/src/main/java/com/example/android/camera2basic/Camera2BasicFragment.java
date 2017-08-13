@@ -188,6 +188,7 @@ public class Camera2BasicFragment extends Fragment
      */
     private AutoFitTextureView mTextureView;
 
+    private TextView jsonText;
     /**
      * A {@link CameraCaptureSession } for camera preview.
      */
@@ -449,6 +450,7 @@ public class Camera2BasicFragment extends Fragment
 
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
+        jsonText = (TextView) view.findViewById(R.id.mTextView);
         view.findViewById(R.id.picture).setOnClickListener(this);
         view.findViewById(R.id.info).setOnClickListener(this);
         mTextureView = (AutoFitTextureView) view.findViewById(R.id.texture);
@@ -1069,12 +1071,14 @@ public class Camera2BasicFragment extends Fragment
     byte[] dataSend = null;
     //public void onPreviewFrame(byte[] data, Camera camera, final View view){
 
+
+
     public void processImage(final byte[] image) {
         new Thread(new Runnable() {
             String result = null;
 
             public void run() {
-                //final TextView jsonText = (TextView) view.findViewById(R.id.mTextView);
+
                 HttpClient httpclient = HttpClients.createDefault();
                 try {
                     // http Request setup
@@ -1112,11 +1116,11 @@ public class Camera2BasicFragment extends Fragment
                     result = e.toString();
                 }
                 Log.e(TAG, result);
-                /*jsonText.post(new Runnable() {
+                jsonText.post(new Runnable() {
                     public void run() {
                         jsonText.setText("Result:" + result);
                     }
-                });*/
+                });
             }
         }).start();
 
