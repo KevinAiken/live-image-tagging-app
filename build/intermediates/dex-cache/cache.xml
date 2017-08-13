@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        is-multidex="true"
+        jar="/home/kevin/AndroidStudioProjects/android-Camera2Basic/Application/build/intermediates/incremental-runtime-classes/debug/instant-run.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.3"
+        sha1="3be78ebc2706b2e1fe2f12d5726887a92d6c183b">
+        <dex dex="/home/kevin/AndroidStudioProjects/android-Camera2Basic/Application/build/intermediates/transforms/dex/debug/folders/1000/10000/instant-run_33e267a48ade185091224fe9af33db6c3812eae7/classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="/home/kevin/.android/build-cache/584dc0629c038e4604e5bf7b90f18cb39ec11b9b/output/jars/classes.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.3"
+        sha1="914f5d3e3ace66080e59613708f06d129a222e25">
+        <dex dex="/home/kevin/AndroidStudioProjects/android-Camera2Basic/Application/build/intermediates/transforms/dex/debug/folders/1000/10/classes_5d673f019eaa850303edd0142312eb5e30966991/classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="/home/kevin/AndroidStudioProjects/android-Camera2Basic/Application/src/main/java/commons-io-2.5.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.3"
+        sha1="b24f6678d458e65f08113a079e3724581eca1184">
+        <dex dex="/home/kevin/AndroidStudioProjects/android-Camera2Basic/Application/build/intermediates/transforms/dex/debug/folders/1000/2/commons-io-2.5_0a603dec21a85cadeaee7b1c5e2180cf3741e01d/classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="/home/kevin/.android/build-cache/2a86dd012f8f3326fa5da7603b0830b7df97a274/output/jars/classes.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.3"
+        sha1="8531f2d46b35de75e6130f25830e0c2c0d6bb98c">
+        <dex dex="/home/kevin/AndroidStudioProjects/android-Camera2Basic/Application/build/intermediates/transforms/dex/debug/folders/1000/10/classes_4f9e7b60abbce688a3151456e813c74c9229ee06/classes.dex" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="/home/kevin/AndroidStudioProjects/android-Camera2Basic/Application/build/intermediates/incremental-classes/debug/instant-run-bootstrap.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.3"
+        sha1="3a233e21b8f0044d97862a2dfce31905f7beef71">
+        <dex dex="/home/kevin/AndroidStudioProjects/android-Camera2Basic/Application/build/intermediates/transforms/dex/debug/folders/1000/10000/instant-run-bootstrap_bf761583f01f7b6bb64a27ea504ca705c53d6fb4/classes.dex" />
+    </item>
+
+</items>
