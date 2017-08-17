@@ -7,18 +7,19 @@ This code displays slightly delayed information about the view of the phones rea
 Introduction
 ------------
 
-Android camera2 sample code is used to setup a reliable preview. Each frame of the preview is grabbed by an ImageReader with an OnImageAvailableListener. Every 40th? frame is processed from a YUV_420_888 to a JPEG Byte Array. In a new thread this Byte Array is sent in an HTTP request to Azure. The reply is then set as the value for a textView.
+Android camera2 sample code is used to setup a reliable preview. Each frame of the preview is grabbed by an ImageReader with an OnImageAvailableListener. Every 40th frame is processed from a YUV_420_888 to a JPEG Byte Array. In a new thread this Byte Array is sent in an HTTP request to Azure. The reply is then set as the value for a textView.
 
 Multiple Azure requests are handled at the same time. The time a request takes is based on network upload speed. 
 
-The percentage of frames that are ignored versus processed is managed by the blah variable in Camera2BasicFragment.java.
+The percentage of frames that are ignored versus processed is managed by the pullXFrame variable in Camera2BasicFragment.java.
 
-The speed of a request can be sped up or slowed down by changing the compression quality in the NV21toJPEG function in Camera2BasicFragment.java. Errors will occur if the images cannot be uploaded fast enough to keep up with the rate at which frames are sent. However, lower quality images reduce the quality of tags received. 
+The speed of a request can be sped up or slowed down by changing the compressionQuality variable in the NV21toJPEG function in Camera2BasicFragment.java. Errors will occur if the images cannot be uploaded fast enough to keep up with the rate at which frames are sent. However, lower quality images reduce the quality of tags received. 
 
 The variable azureSubscriptionKey in Camera2BasicFragment.java is the subscription key that is used. My key is currently there. The key has to match the server, the server for my key being eastus2.
 
 App was tested on a Huawei Nexus 6P Android 7.1.1, API 25 physical device, and a Nexus 6P Android 7.1.1, API 25 virtual device.
 
+A built APK is located at Application/Build/outputs/apk/Application-debug.apk
 
 Pre-requisites
 --------------
