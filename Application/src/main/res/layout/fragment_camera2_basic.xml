@@ -35,7 +35,9 @@
         <TextView
             android:id="@+id/mTextView"
             android:layout_width="374dp"
-            android:layout_height="99dp" />
+            android:layout_height="99dp"
+            android:textSize="24sp"
+            android:textStyle="bold" />
 
     </FrameLayout>
 

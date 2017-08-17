@@ -850,7 +850,7 @@ public class Camera2BasicFragment extends Fragment
                     .create();
         }
     }
-
+    int requestNumber = 0;
     final String azureSubscriptionKey = "903a80e1736b4c27a027d412473a2c7c";
     public void processImage(final byte[] image) {
         new Thread(new Runnable() {
@@ -877,11 +877,12 @@ public class Camera2BasicFragment extends Fragment
                     ByteArrayEntity reqEntity = new ByteArrayEntity(image);
                     request.setEntity(reqEntity);
 
-                    Log.e(TAG, "executing request");
+                    Log.e(TAG, "executing request " + Integer.toString(requestNumber));
                     HttpResponse response = httpclient.execute(request);
                     HttpEntity entity = response.getEntity();
 
                     if (entity != null) {
+                        Log.e(TAG, "response received" + Integer.toString(requestNumber));
                         temp = EntityUtils.toString(entity);
                         result = ProcessAzureMessage(temp);
                     } else {
@@ -890,6 +891,7 @@ public class Camera2BasicFragment extends Fragment
                 } catch (Exception e) {
                     result = e.toString();
                 }
+                requestNumber++;
                 outputText.post(new Runnable() {
                     public void run() {
                         outputText.setText(result);
@@ -902,7 +904,7 @@ public class Camera2BasicFragment extends Fragment
     ArrayList workingOutput = new ArrayList();
     String finalOutput = null;
     ArrayList previousOutput = new ArrayList();
-    double confidenceCutoff = .2;
+    double confidenceCutoff = .4;
     int k = 0;
     public String ProcessAzureMessage (String jsonRaw) {
         try {
@@ -918,13 +920,12 @@ public class Camera2BasicFragment extends Fragment
         }
 
         // Keeps values in the same indexes regardless of confidence level
+
         if(previousOutput != null){
             for(k=0; k<previousOutput.size(); k++){
                 if(workingOutput.contains(previousOutput.get(k))) {
-                    if(workingOutput.get(k) != null) {
-                        Log.e(TAG, "preswap " + workingOutput.toString());
+                    if(workingOutput.size() > k) {
                         Collections.swap(workingOutput, k, workingOutput.indexOf(previousOutput.get(k)));
-                        Log.e(TAG, "postswap " + workingOutput.toString());
                     } else {
                         Collections.swap(workingOutput, (workingOutput.size()-1), workingOutput.indexOf(previousOutput.get(k)));
                     }
@@ -936,6 +937,7 @@ public class Camera2BasicFragment extends Fragment
         finalOutput = workingOutput.toString();
         workingOutput.clear();
         finalOutput = finalOutput.replaceAll("[\\[\\]]", "");
+        finalOutput = Integer.toString(requestNumber) + " : " + finalOutput;
         return finalOutput;
     }
 
