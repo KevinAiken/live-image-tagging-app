@@ -30,8 +30,8 @@ Pre-requisites
 
 Screenshots
 -------------
-<img src="screenshots/Portrait_sample.png" height="400" alt="Screenshot"/>
-<img src="screenshots/Landscape_sample.png" height="400" alt="Screenshot"/>
+![Scheme](screenshots/Portrait_sample.png)
+![Scheme](screenshots/Landscape_sample.png)
 
 Getting Started
 ---------------
