@@ -1,4 +1,6 @@
 /*
+ * Modified By Kevin Aiken
+ *
  * Copyright 2014 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +16,7 @@
  * limitations under the License.
  */
 
+
 package com.example.android.camera2basic;
 
 import android.Manifest;
@@ -24,12 +27,8 @@ import android.app.DialogFragment;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Camera;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Point;
@@ -42,15 +41,11 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
-import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
@@ -64,11 +59,9 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -78,7 +71,6 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -93,8 +85,15 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONTokener;
+import org.json.JSONObject;
+
+
+
 public class Camera2BasicFragment extends Fragment
-        implements View.OnClickListener, FragmentCompat.OnRequestPermissionsResultCallback {
+        implements FragmentCompat.OnRequestPermissionsResultCallback {
 
     /**
      * Conversion from screen rotation to JPEG orientation.
@@ -119,26 +118,6 @@ public class Camera2BasicFragment extends Fragment
      * Camera state: Showing camera preview.
      */
     private static final int STATE_PREVIEW = 0;
-
-    /**
-     * Camera state: Waiting for the focus to be locked.
-     */
-    private static final int STATE_WAITING_LOCK = 1;
-
-    /**
-     * Camera state: Waiting for the exposure to be precapture state.
-     */
-    private static final int STATE_WAITING_PRECAPTURE = 2;
-
-    /**
-     * Camera state: Waiting for the exposure state to be something other than precapture.
-     */
-    private static final int STATE_WAITING_NON_PRECAPTURE = 3;
-
-    /**
-     * Camera state: Picture was taken.
-     */
-    private static final int STATE_PICTURE_TAKEN = 4;
 
     /**
      * Max preview width that is guaranteed by Camera2 API
@@ -188,7 +167,7 @@ public class Camera2BasicFragment extends Fragment
      */
     private AutoFitTextureView mTextureView;
 
-    private TextView jsonText;
+    private TextView outputText;
     /**
      * A {@link CameraCaptureSession } for camera preview.
      */
@@ -282,10 +261,11 @@ public class Camera2BasicFragment extends Fragment
      */
     private CaptureRequest mPreviewRequest;
 
+
     /**
      * The current state of camera state for taking pictures.
      *
-     * @see #mCaptureCallback
+     * //@see #mCaptureCallback
      */
     private int mState = STATE_PREVIEW;
 
@@ -303,74 +283,6 @@ public class Camera2BasicFragment extends Fragment
      * Orientation of the camera sensor
      */
     private int mSensorOrientation;
-
-    /**
-     * A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
-     */
-    private CameraCaptureSession.CaptureCallback mCaptureCallback
-            = new CameraCaptureSession.CaptureCallback() {
-
-        private void process(CaptureResult result) {
-            switch (mState) {
-                case STATE_PREVIEW: {
-                    // We have nothing to do when the camera preview is working normally.
-                    break;
-                }
-                case STATE_WAITING_LOCK: {
-                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
-                    if (afState == null) {
-                        captureStillPicture();
-                    } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
-                            CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
-                        // CONTROL_AE_STATE can be null on some devices
-                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                        if (aeState == null ||
-                                aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                            mState = STATE_PICTURE_TAKEN;
-                            captureStillPicture();
-                        } else {
-                            runPrecaptureSequence();
-                        }
-                    }
-                    break;
-                }
-                case STATE_WAITING_PRECAPTURE: {
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null ||
-                            aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
-                            aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
-                        mState = STATE_WAITING_NON_PRECAPTURE;
-                    }
-                    break;
-                }
-                case STATE_WAITING_NON_PRECAPTURE: {
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
-                        mState = STATE_PICTURE_TAKEN;
-                        captureStillPicture();
-                    }
-                    break;
-                }
-            }
-        }
-
-        @Override
-        public void onCaptureProgressed(@NonNull CameraCaptureSession session,
-                                        @NonNull CaptureRequest request,
-                                        @NonNull CaptureResult partialResult) {
-            process(partialResult);
-        }
-
-        @Override
-        public void onCaptureCompleted(@NonNull CameraCaptureSession session,
-                                       @NonNull CaptureRequest request,
-                                       @NonNull TotalCaptureResult result) {
-            process(result);
-        }
-
-    };
 
     /**
      * Shows a {@link Toast} on the UI thread.
@@ -450,9 +362,7 @@ public class Camera2BasicFragment extends Fragment
 
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
-        jsonText = (TextView) view.findViewById(R.id.mTextView);
-        view.findViewById(R.id.picture).setOnClickListener(this);
-        view.findViewById(R.id.info).setOnClickListener(this);
+        outputText = (TextView) view.findViewById(R.id.mTextView);
         mTextureView = (AutoFitTextureView) view.findViewById(R.id.texture);
     }
 
@@ -746,7 +656,9 @@ public class Camera2BasicFragment extends Fragment
                                 // Finally, we start displaying the camera preview.
                                 mPreviewRequest = mPreviewRequestBuilder.build();
                                 mCaptureSession.setRepeatingRequest(mPreviewRequest,
-                                        mCaptureCallback, mBackgroundHandler);
+                                        null, mBackgroundHandler);
+                                /*mCaptureSession.setRepeatingRequest(mPreviewRequest,
+                                        mCaptureCallback, mBackgroundHandler); */
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                             }
@@ -798,92 +710,6 @@ public class Camera2BasicFragment extends Fragment
     }
 
     /**
-     * Initiate a still image capture.
-     */
-    private void takePicture() {
-        lockFocus();
-    }
-
-    /**
-     * Lock the focus as the first step for a still image capture.
-     */
-    private void lockFocus() {
-        try {
-            // This is how to tell the camera to lock focus.
-            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
-                    CameraMetadata.CONTROL_AF_TRIGGER_START);
-            // Tell #mCaptureCallback to wait for the lock.
-            mState = STATE_WAITING_LOCK;
-            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
-                    mBackgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Run the precapture sequence for capturing a still image. This method should be called when
-     * we get a response in {@link #mCaptureCallback} from {@link #lockFocus()}.
-     */
-    private void runPrecaptureSequence() {
-        try {
-            // This is how to tell the camera to trigger.
-            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
-                    CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
-            // Tell #mCaptureCallback to wait for the precapture sequence to be set.
-            mState = STATE_WAITING_PRECAPTURE;
-            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
-                    mBackgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Capture a still picture. This method should be called when we get a response in
-     * {@link #mCaptureCallback} from both {@link #lockFocus()}.
-     */
-    private void captureStillPicture() {
-        try {
-            final Activity activity = getActivity();
-            if (null == activity || null == mCameraDevice) {
-                return;
-            }
-            // This is the CaptureRequest.Builder that we use to take a picture.
-            final CaptureRequest.Builder captureBuilder =
-                    mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            captureBuilder.addTarget(mImageReader.getSurface());
-
-            // Use the same AE and AF modes as the preview.
-            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
-                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-            setAutoFlash(captureBuilder);
-
-            // Orientation
-            int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
-
-            CameraCaptureSession.CaptureCallback CaptureCallback
-                    = new CameraCaptureSession.CaptureCallback() {
-
-                @Override
-                public void onCaptureCompleted(@NonNull CameraCaptureSession session,
-                                               @NonNull CaptureRequest request,
-                                               @NonNull TotalCaptureResult result) {
-                    showToast("Saved: " + mFile);
-                    Log.d(TAG, mFile.toString());
-                    unlockFocus();
-                }
-            };
-
-            mCaptureSession.stopRepeating();
-            mCaptureSession.capture(captureBuilder.build(), CaptureCallback, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
      * Retrieves the JPEG orientation from the specified screen rotation.
      *
      * @param rotation The screen rotation.
@@ -895,47 +721,6 @@ public class Camera2BasicFragment extends Fragment
         // For devices with orientation of 90, we simply return our mapping from ORIENTATIONS.
         // For devices with orientation of 270, we need to rotate the JPEG 180 degrees.
         return (ORIENTATIONS.get(rotation) + mSensorOrientation + 270) % 360;
-    }
-
-    /**
-     * Unlock the focus. This method should be called when still image capture sequence is
-     * finished.
-     */
-    private void unlockFocus() {
-        try {
-            // Reset the auto-focus trigger
-            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
-                    CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-            setAutoFlash(mPreviewRequestBuilder);
-            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
-                    mBackgroundHandler);
-            // After this, the camera will go back to the normal state of preview.
-            mState = STATE_PREVIEW;
-            mCaptureSession.setRepeatingRequest(mPreviewRequest, mCaptureCallback,
-                    mBackgroundHandler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.picture: {
-                takePicture();
-                break;
-            }
-            case R.id.info: {
-                Activity activity = getActivity();
-                if (null != activity) {
-                    new AlertDialog.Builder(activity)
-                            .setMessage(R.string.intro_message)
-                            .setPositiveButton(android.R.string.ok, null)
-                            .show();
-                }
-                break;
-            }
-        }
     }
 
     private void setAutoFlash(CaptureRequest.Builder requestBuilder) {
@@ -1067,66 +852,94 @@ public class Camera2BasicFragment extends Fragment
     }
 
     final String azureSubscriptionKey = "903a80e1736b4c27a027d412473a2c7c";
-
-    byte[] dataSend = null;
-    //public void onPreviewFrame(byte[] data, Camera camera, final View view){
-
-
-
     public void processImage(final byte[] image) {
         new Thread(new Runnable() {
             String result = null;
+            String temp = null;
 
             public void run() {
+                //Following is based on code sample from https://westus.dev.cognitive.microsoft.com/docs/services/56f91f2d778daf23d8ec6739/operations/56f91f2e778daf14a499e1fa
 
                 HttpClient httpclient = HttpClients.createDefault();
+
                 try {
-                    // http Request setup
                     URIBuilder builder = new URIBuilder("https://eastus2.api.cognitive.microsoft.com/vision/v1.0/analyze");
+
                     builder.setParameter("visualFeatures", "tags");
                     builder.setParameter("language", "en");
+
                     URI uri = builder.build();
                     HttpPost request = new HttpPost(uri);
                     request.setHeader("Content-Type", "application/octet-stream");
                     request.setHeader("Ocp-Apim-Subscription-Key", azureSubscriptionKey);
 
-                    //Data setup
-                    /*
-                    //Bitmap bm = BitmapFactory.decodeByteArray(image, 0, image.length, null);
-                    // need to play with the next line to get balance request time with tag quality
-                    Bitmap bm2 = Bitmap.createScaledBitmap(bm, (bm.getWidth() / 5), bm.getHeight() / 5, false);
-                    ByteArrayOutputStream output = new ByteArrayOutputStream();
-                    bm2.compress(Bitmap.CompressFormat.JPEG, 100, output);
-                    ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
-                    byte[] data = IOUtils.toByteArray(inputStream);
-                    */
-                    byte[] data = image;
-                    ByteArrayEntity reqEntity = new ByteArrayEntity(data);
-
+                    // Request body
+                    ByteArrayEntity reqEntity = new ByteArrayEntity(image);
                     request.setEntity(reqEntity);
+
                     Log.e(TAG, "executing request");
                     HttpResponse response = httpclient.execute(request);
                     HttpEntity entity = response.getEntity();
+
                     if (entity != null) {
-                        result = EntityUtils.toString(entity);
+                        temp = EntityUtils.toString(entity);
+                        result = ProcessAzureMessage(temp);
                     } else {
                         result = "Entity was null";
                     }
                 } catch (Exception e) {
                     result = e.toString();
                 }
-                Log.e(TAG, result);
-                jsonText.post(new Runnable() {
+                outputText.post(new Runnable() {
                     public void run() {
-                        jsonText.setText("Result:" + result);
+                        outputText.setText(result);
                     }
                 });
             }
         }).start();
-
-
     }
 
+    ArrayList workingOutput = new ArrayList();
+    String finalOutput = null;
+    ArrayList previousOutput = new ArrayList();
+    double confidenceCutoff = .2;
+    int k = 0;
+    public String ProcessAzureMessage (String jsonRaw) {
+        try {
+            JSONObject azureObject = (JSONObject) new JSONTokener(jsonRaw).nextValue();
+            JSONArray tags = azureObject.getJSONArray("tags");
+            for(int i=0; i<tags.length(); i++){
+                if(Double.parseDouble(tags.getJSONObject(i).get("confidence").toString()) > confidenceCutoff) {
+                    workingOutput.add(tags.getJSONObject(i).get("name"));
+                }
+            }
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Keeps values in the same indexes regardless of confidence level
+        if(previousOutput != null){
+            for(k=0; k<previousOutput.size(); k++){
+                if(workingOutput.contains(previousOutput.get(k))) {
+                    if(workingOutput.get(k) != null) {
+                        Log.e(TAG, "preswap " + workingOutput.toString());
+                        Collections.swap(workingOutput, k, workingOutput.indexOf(previousOutput.get(k)));
+                        Log.e(TAG, "postswap " + workingOutput.toString());
+                    } else {
+                        Collections.swap(workingOutput, (workingOutput.size()-1), workingOutput.indexOf(previousOutput.get(k)));
+                    }
+                }
+            }
+        }
+        previousOutput.clear();
+        previousOutput.addAll(workingOutput);
+        finalOutput = workingOutput.toString();
+        workingOutput.clear();
+        finalOutput = finalOutput.replaceAll("[\\[\\]]", "");
+        return finalOutput;
+    }
+
+    // Following conversion methods are from stackoverflow: https://stackoverflow.com/questions/40090681/android-camera2-api-yuv-420-888-to-jpeg
     public static byte[] imageToByteArray(Image image) {
         byte[] data = null;
         if (image.getFormat() == ImageFormat.JPEG) {
@@ -1166,37 +979,38 @@ public class Camera2BasicFragment extends Fragment
     private static byte[] NV21toJPEG(byte[] nv21, int width, int height) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         YuvImage yuv = new YuvImage(nv21, ImageFormat.NV21, width, height, null);
-        yuv.compressToJpeg(new Rect(0, 0, width, height), 100, out);
+        // TODO: 8/16/17 Find a good compression number
+        yuv.compressToJpeg(new Rect(0, 0, width, height), 75, out);
         return out.toByteArray();
 
     }
 
-    int count = 0;
+    int frameCount = 0;
+    // TODO: 8/16/17 Find a good number for this
+    int pullXFrame = 40; //Every nth frame will be pulled
+
     ImageReader.OnImageAvailableListener mImageAvailable = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            if(count > 40) {
-                count = 0;
+            if(frameCount > pullXFrame) {
+                frameCount = 0;
                 Image image = reader.acquireLatestImage();
-
-
                 if (image == null) {
                     Log.e(TAG, "Image is null");
                     return;
                 }
-
                 processImage(imageToByteArray(image));
-
                 image.close();
             } else {
-                count++;
                 Image image = reader.acquireLatestImage();
-                image.close();
+                if(image == null){
+                    frameCount++;
+                } else {
+                    frameCount++;
+                    image.close();
+                }
             }
         }
     };
-
-
-
 
 }

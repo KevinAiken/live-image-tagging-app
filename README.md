@@ -1,43 +1,24 @@
 
-Android Camera2Basic Sample
+Live Azure Image Processing based on Android Camera2Basic Sample
 ===================================
 
-This sample demonstrates how to use basic functionalities of Camera2
-API. You can learn how to iterate through characteristics of all the
-cameras attached to the device, display a camera preview, and take
-pictures.
+This code displays slightly delayed information about the view of the phones rear camera.
 
 Introduction
 ------------
 
-The [Camera2 API][1] provides an interface to individual camera
-devices connected to an Android device. It replaces the deprecated
-Camera class.
+Android camera2 sample code is used to setup a reliable preview. Each frame of the preview is grabbed by an ImageReader with an OnImageAvailableListener. Every 40th? frame is processed from a YUV_420_888 to a JPEG Byte Array. In a new thread this Byte Array is sent in an HTTP request to Azure. The reply is then set as the value for a textView.
 
-Use [getCameraIdList][2] to get a list of all the available
-cameras. You can then use [getCameraCharacteristics][3] and find the
-best camera that suits your need (front/rear facing, resolution etc).
+Multiple Azure requests are handled at the same time. The time a request takes is based on network upload speed. 
 
-Create an instance of [CameraDevice.StateCallback][4] and open a
-camera. It is ready to start camera preview when the camera is opened.
+The percentage of frames that are ignored versus processed is managed by the blah variable in Camera2BasicFragment.java.
 
-This sample uses TextureView to show the camera preview. Create a
-[CameraCaptureSession][5] and set a repeating [CaptureRequest][6] to it.
+The speed of a request can be sped up or slowed down by changing the compression quality in the NV21toJPEG function in Camera2BasicFragment.java. Errors will occur if the images cannot be uploaded fast enough to keep up with the rate at which frames are sent. However, lower quality images reduce the quality of tags received. 
 
-Still image capture takes several steps. First, you need to lock the
-focus of the camera by updating the CaptureRequest for the camera
-preview. Then, in a similar way, you need to run a precapture
-sequence. After that, it is ready to capture a picture. Create a new
-CaptureRequest and call [capture][7]. Don't forget to unlock the focus
-when you are done.
+The variable azureSubscriptionKey in Camera2BasicFragment.java is the subscription key that is used. My key is currently there. The key has to match the server, the server for my key being eastus2.
 
-[1]: https://developer.android.com/reference/android/hardware/camera2/package-summary.html
-[2]: https://developer.android.com/reference/android/hardware/camera2/CameraManager.html#getCameraIdList()
-[3]: https://developer.android.com/reference/android/hardware/camera2/CameraManager.html#getCameraCharacteristics(java.lang.String)
-[4]: https://developer.android.com/reference/android/hardware/camera2/CameraDevice.StateCallback.html
-[5]: https://developer.android.com/reference/android/hardware/camera2/CameraCaptureSession.html
-[6]: https://developer.android.com/reference/android/hardware/camera2/CaptureRequest.html
-[7]: https://developer.android.com/reference/android/hardware/camera2/CameraCaptureSession.html#capture(android.hardware.camera2.CaptureRequest, android.hardware.camera2.CameraCaptureSession.CaptureCallback, android.os.Handler)
+App was tested on a Huawei Nexus 6P Android 7.1.1, API 25 physical device, and a Nexus 6P Android 7.1.1, API 25 virtual device.
+
 
 Pre-requisites
 --------------
@@ -49,7 +30,6 @@ Pre-requisites
 Screenshots
 -------------
 
-<img src="screenshots/main.png" height="400" alt="Screenshot"/> 
 
 Getting Started
 ---------------
@@ -57,17 +37,6 @@ Getting Started
 This sample uses the Gradle build system. To build this project, use the
 "gradlew build" command or use "Import Project" in Android Studio.
 
-Support
--------
-
-- Google+ Community: https://plus.google.com/communities/105153134372062985968
-- Stack Overflow: http://stackoverflow.com/questions/tagged/android
-
-If you've found an error in this sample, please file an issue:
-https://github.com/googlesamples/android-Camera2Basic
-
-Patches are encouraged, and may be submitted by forking this project and
-submitting a pull request through GitHub. Please see CONTRIBUTING.md for more details.
 
 License
 -------
